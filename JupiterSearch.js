@@ -2,23 +2,23 @@ var ERR_LIVE_CHANNELS = [
   {
     id: "etv",
     name: "OTSE: ETV",
-    url: "https://err.ee",
-    streamUrl: "https://err.ee",
-    thumb: "https://err.ee"
+    url: "https://jupiter.err.ee/live/etv",
+    streamUrl: "https://sb.err.ee/live/etv.m3u8",
+    thumb: "https://jupiter.err.ee/favicon.ico"
   },
   {
     id: "etv2",
     name: "OTSE: ETV2",
-    url: "https://err.ee2",
-    streamUrl: "https://err.ee",
-    thumb: "https://err.ee"
+    url: "https://jupiter.err.ee/live/etv2",
+    streamUrl: "https://sb.err.ee/live/etv2.m3u8",
+    thumb: "https://jupiter.err.ee/favicon.ico"
   },
   {
     id: "etvpluss",
     name: "OTSE: ETV+",
-    url: "https://err.eepluss",
-    streamUrl: "https://err.ee",
-    thumb: "https://err.ee"
+    url: "https://jupiter.err.ee/live/etvpluss",
+    streamUrl: "https://sb.err.ee/live/etvpluss.m3u8",
+    thumb: "https://jupiter.err.ee/favicon.ico"
   }
 ];
 
