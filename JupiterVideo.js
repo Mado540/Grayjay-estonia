@@ -267,6 +267,8 @@ function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
   return fallbackUrl;
 }
 
+var SCHEDULE_CACHE = { date: "", data: null };
+
 function getLiveScheduleInfo(liveId) {
   var dNow = new Date();
   var yyyy = dNow.getFullYear();
@@ -287,13 +289,21 @@ function getLiveScheduleInfo(liveId) {
 
   for (var c = 0; c < candidates.length; c++) {
     try {
-      var resp = http.GET(candidates[c], API_HEADERS, false);
-      if (!resp.isOk) {
-        debugLog.push(candidates[c] + " -> HTTP " + resp.code);
-        continue;
+      var json = null;
+      if (c === 0 && SCHEDULE_CACHE.date === todayStr && SCHEDULE_CACHE.data) {
+        json = SCHEDULE_CACHE.data;
+      } else {
+        var resp = http.GET(candidates[c], API_HEADERS, false);
+        if (!resp.isOk) {
+          debugLog.push(candidates[c] + " -> HTTP " + resp.code);
+          continue;
+        }
+        json = JSON.parse(resp.body);
+        if (c === 0) {
+          SCHEDULE_CACHE = { date: todayStr, data: json };
+        }
       }
 
-      var json = JSON.parse(resp.body);
       var rawData = json.data || json;
       var items = rawData[slug] || rawData.schedule || rawData.items || rawData.shows || (Array.isArray(rawData) ? rawData : null);
 
@@ -302,12 +312,13 @@ function getLiveScheduleInfo(liveId) {
       }
 
       if (!items || !Array.isArray(items) || items.length === 0) {
-        debugLog.push(candidates[c] + " -> OK, sisu: " + resp.body.substring(0, 180));
+        debugLog.push(candidates[c] + " -> OK, tühi");
         continue;
       }
 
       var now = Math.floor(Date.now() / 1000);
       var currentShow = "";
+      var currentThumb = "";
       var upcomingList = [];
 
       for (var i = 0; i < items.length; i++) {
@@ -318,6 +329,15 @@ function getLiveScheduleInfo(liveId) {
 
         if (start <= now && end > now) {
           currentShow = title;
+          if (typeof extractErrPhoto === "function") {
+            currentThumb = extractErrPhoto(item) || "";
+          }
+          if (!currentThumb && item.photoUrl) {
+            currentThumb = item.photoUrl;
+          }
+          if (!currentThumb && item.image) {
+            currentThumb = item.image;
+          }
         }
         if (end > now && upcomingList.length < 12) {
           var d = new Date(start * 1000);
@@ -331,6 +351,7 @@ function getLiveScheduleInfo(liveId) {
       if (upcomingList.length > 0) {
         return {
           currentShow: currentShow,
+          currentThumb: currentThumb,
           currentLead: "",
           scheduleText: upcomingList.join("\n")
         };
@@ -342,6 +363,7 @@ function getLiveScheduleInfo(liveId) {
 
   return {
     currentShow: "",
+    currentThumb: "",
     currentLead: "",
     scheduleText: "API kontroll:\n" + debugLog.join("\n")
   };
