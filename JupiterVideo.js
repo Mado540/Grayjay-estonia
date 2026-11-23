@@ -246,16 +246,21 @@ function getLiveScheduleInfo(liveId) {
     var channelMap = {
       "etv": "etv",
       "etv2": "etv2",
-      "etvplus": "etvpluss",
       "etvpluss": "etvpluss"
     };
-    var slug = channelMap[String(liveId).toLowerCase()] || String(liveId).toLowerCase();
-    var scheduleUrl = SERVICES_URL + "/api/v2/schedule/getSchedule?channel=" + slug;
+    var slug = channelMap[liveId] || liveId;
+    var scheduleUrl = SERVICES_URL + "/api/v2/tvSchedule/getTvSchedule?channel=" + slug;
     var resp = http.GET(scheduleUrl, API_HEADERS, false);
-    if (!resp.isOk) return null;
+    if (!resp.isOk) {
+      return {
+        currentShow: "",
+        currentLead: "",
+        scheduleText: "Saatekava API viga: HTTP " + resp.code
+      };
+    }
 
     var json = JSON.parse(resp.body);
-    var items = (json.data && json.data.schedule) ? json.data.schedule : [];
+    var items = (json.data && (json.data.schedule || json.data.items)) ? (json.data.schedule || json.data.items) : [];
     var now = Math.floor(Date.now() / 1000);
     var currentShow = "";
     var currentLead = "";
@@ -276,13 +281,25 @@ function getLiveScheduleInfo(liveId) {
       }
     }
 
+    if (upcomingList.length === 0) {
+      return {
+        currentShow: "",
+        currentLead: "",
+        scheduleText: "Saatekava tühi. Võtmed: " + Object.keys(json.data || json).join(", ")
+      };
+    }
+
     return {
       currentShow: currentShow,
       currentLead: currentLead,
       scheduleText: upcomingList.join("\n")
     };
   } catch (e) {
-    return null;
+    return {
+      currentShow: "",
+      currentLead: "",
+      scheduleText: "Saatekava viga: " + e.message
+    };
   }
 }
 
@@ -328,8 +345,8 @@ source.getContentDetails = function (url) {
       author: new PlatformAuthorLink(
         new PlatformID("Jupiter", "err_live", PLUGIN_ID),
         "ERR Otse",
-        "https://err.ee",
-        "https://err.ee"
+        "https://jupiter.err.ee",
+        "https://jupiter.err.ee"
       ),
       uploadDate: Math.floor(Date.now() / 1000),
       duration: 0,
@@ -344,7 +361,8 @@ source.getContentDetails = function (url) {
           duration: 0,
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Referer": "https://err.ee"
+            "Referer": "https://jupiter.err.ee/",
+            "Origin": "https://jupiter.err.ee"
           }
         })
       ])
