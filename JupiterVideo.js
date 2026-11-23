@@ -138,20 +138,45 @@ source.getContentDetails = function (url) {
   var data = JSON.parse(resp.body).data || {};
   var main = data.mainContent;
   if (!main || !main.medias || main.medias.length === 0) {
-    throw new ScriptException("Sellel sisul puudub mängitav videovoog.");
+    throw new ScriptException("Sellel sisul puudub mängitav videovoog (võib olla aegunud).");
   }
 
   var media = main.medias[0];
   var src = media.src || {};
   var hlsUrl = src.hls || src.hls2 || src.hlsNew || "";
-  if (!hlsUrl) throw new ScriptException("HLS videovoogu ei leitud.");
-  if (hlsUrl.indexOf("//") === 0) hlsUrl = "https:" + hlsUrl;
+  var dashUrl = src.dash || src.mpd || "";
+
+  if (!hlsUrl && !dashUrl) {
+    if (media.drm) {
+      throw new ScriptException("See film/sari on DRM-kaitsega ega ole Grayjays mängitav.");
+    }
+    throw new ScriptException("Mängitavat videovoogu ei leitud.");
+  }
+
+  if (hlsUrl && hlsUrl.indexOf("//") === 0) hlsUrl = "https:" + hlsUrl;
+  if (dashUrl && dashUrl.indexOf("//") === 0) dashUrl = "https:" + dashUrl;
 
   var root = data.rootContent || main;
   var seriesId = String(root.id || main.id);
   var seriesTitle = root.heading || main.heading || "ERR Jupiter";
   var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
   var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
+
+  var sources = [];
+  if (hlsUrl) {
+    sources.push(new HLSSource({
+      name: "HLS Auto",
+      url: hlsUrl,
+      duration: duration
+    }));
+  }
+  if (dashUrl) {
+    sources.push(new DashSource({
+      name: "DASH Auto",
+      url: dashUrl,
+      duration: duration
+    }));
+  }
 
   return new PlatformVideoDetails({
     id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
@@ -169,13 +194,6 @@ source.getContentDetails = function (url) {
     url: url,
     isLive: false,
     description: stripHtmlTags(main.lead || ""),
-    video: new VideoSourceDescriptor([
-      new HLSSource({
-        name: "HLS Auto",
-        url: hlsUrl,
-        duration: duration
-      })
-    ])
+    video: new VideoSourceDescriptor(sources)
   });
 };
-
