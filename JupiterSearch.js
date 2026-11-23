@@ -1,23 +1,24 @@
 source.getHome = function () {
-  return createJupiterSearchPager("e", 1);
+  return createJupiterSearchPager("", 1);
 };
 
 source.search = function (query, type, order, filters) {
-  return createJupiterSearchPager(query || "e", 1);
+  return createJupiterSearchPager(query, 1);
 };
 
 function createJupiterSearchPager(query, page) {
   var limit = 24;
   var offset = (page - 1) * limit;
+  var hasQuery = query && query.trim().length > 0;
   var opts = {
     page: page,
     limit: limit,
     offset: offset,
     category: 3905,
-    phrase: query ? query.trim() : "",
+    phrase: hasQuery ? query.trim() : "",
     types: ["media"],
     searchTypes: ["video"],
-    viewTypes: query ? ["series", "movie", "episode", "clip"] : ["series", "movie"],
+    viewTypes: hasQuery ? ["series", "movie", "episode", "clip"] : ["series", "movie"],
     now: 0
   };
 
