@@ -1,4 +1,5 @@
-var TIGU_SEARCH_URL = "https://kanal2.ee";
+var TIGU_SEARCH_URL = "https://tigu.kanal2.ee/duoplay/ee/et/telecasts/search";
+
 
 // --- AVALEHT (KOOS LEHEKÜLGEDE KERIMISEGA) ---
 source.getHome = function () {
