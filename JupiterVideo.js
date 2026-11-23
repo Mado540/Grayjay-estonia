@@ -126,11 +126,6 @@ source.isContentDetailsUrl = function (url) {
   return url.indexOf("/live/") !== -1 || JUPITER_URL_REGEX.test(url);
 };
 
-
-source.isContentDetailsUrl = function (url) {
-  return url.indexOf("/live/") !== -1 || JUPITER_URL_REGEX.test(url);
-};
-
 source.getContentDetails = function (url) {
   if (url.indexOf("jupiter.err.ee/live/") !== -1) {
     var liveId = url.split("/live/").pop().split("?").shift();
