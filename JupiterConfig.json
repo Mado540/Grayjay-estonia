@@ -1,0 +1,27 @@
+{
+  "name": "ERR Jupiter",
+  "description": "ERR Jupiteri saated, sarjad ja filmid",
+  "author": "Custom",
+  "authorUrl": "https://jupiter.err.ee",
+  "sourceUrl": "https://jupiter.err.ee",
+  "repositoryUrl": "https://jupiter.err.ee",
+  "scriptUrls": [
+    "./JupiterMain.js",
+    "./JupiterSearch.js",
+    "./JupiterVideo.js"
+  ],
+  "version": 1,
+  "iconUrl": "https://err.ee",
+  "id": "8f4e2a1b-9c3d-4e5f-a1b2-c3d4e5f6a7b8",
+  "scriptSignature": "",
+  "scriptPublicKey": "",
+  "packages": ["Http", "Utilities"],
+  "allowEval": false,
+  "allowUrls": [
+    "jupiter.err.ee",
+    "services.err.ee",
+    "vod.err.ee",
+    "s.err.ee"
+  ]
+}
+
