@@ -30,11 +30,12 @@ function getLiveChannelVideos() {
     var displayTitle = (sched && sched.currentShow)
       ? ch.name + " — " + sched.currentShow
       : ch.name;
+    var thumbToUse = (sched && sched.currentThumb) ? sched.currentThumb : ch.thumb;
 
     list.push(new PlatformVideo({
       id: new PlatformID("Jupiter", "live_" + ch.id, PLUGIN_ID),
       name: displayTitle,
-      thumbnails: new Thumbnails([new Thumbnail(ch.thumb, 720)]),
+      thumbnails: new Thumbnails([new Thumbnail(thumbToUse, 720)]),
       author: new PlatformAuthorLink(
         new PlatformID("Jupiter", "err_live", PLUGIN_ID),
         (sched && sched.currentShow) ? "Hetkel: " + sched.currentShow : "ERR Otse",
