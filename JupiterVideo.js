@@ -241,6 +241,51 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
   );
 }
 
+function getLiveScheduleInfo(liveId) {
+  try {
+    var channelMap = {
+      "etv": "etv",
+      "etv2": "etv2",
+      "etvplus": "etvpluss",
+      "etvpluss": "etvpluss"
+    };
+    var slug = channelMap[String(liveId).toLowerCase()] || String(liveId).toLowerCase();
+    var scheduleUrl = SERVICES_URL + "/api/v2/schedule/getSchedule?channel=" + slug;
+    var resp = http.GET(scheduleUrl, API_HEADERS, false);
+    if (!resp.isOk) return null;
+
+    var json = JSON.parse(resp.body);
+    var items = (json.data && json.data.schedule) ? json.data.schedule : [];
+    var now = Math.floor(Date.now() / 1000);
+    var currentShow = "";
+    var currentLead = "";
+    var upcomingList = [];
+
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (item.start <= now && item.end > now) {
+        currentShow = item.heading || "";
+        currentLead = stripHtmlTags(item.lead || "");
+      }
+      if (item.end > now && upcomingList.length < 10) {
+        var d = new Date(item.start * 1000);
+        var hh = ("0" + d.getHours()).slice(-2);
+        var mm = ("0" + d.getMinutes()).slice(-2);
+        var prefix = (item.start <= now && item.end > now) ? "▶ " : "";
+        upcomingList.push(prefix + hh + ":" + mm + " - " + (item.heading || ""));
+      }
+    }
+
+    return {
+      currentShow: currentShow,
+      currentLead: currentLead,
+      scheduleText: upcomingList.join("\n")
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 source.isContentDetailsUrl = function (url) {
   return url.indexOf("/live/") !== -1 || JUPITER_URL_REGEX.test(url);
 };
@@ -257,9 +302,28 @@ source.getContentDetails = function (url) {
     }
     if (!liveInfo) throw new ScriptException("Tundmatu otsekanal: " + liveId);
 
+    var sched = getLiveScheduleInfo(liveInfo.id);
+    var videoTitle = (sched && sched.currentShow)
+      ? liveInfo.name + " | Hetkel eetris: " + sched.currentShow
+      : liveInfo.name;
+
+    var descParts = [];
+    if (sched && sched.currentShow) {
+      descParts.push("HETKEL EETRIS: " + sched.currentShow);
+      if (sched.currentLead) {
+        descParts.push(sched.currentLead);
+      }
+    }
+    if (sched && sched.scheduleText) {
+      descParts.push("TÄNANE SAATEKAVA:\n" + sched.scheduleText);
+    }
+    var videoDesc = descParts.length > 0
+      ? descParts.join("\n\n")
+      : liveInfo.name + " otseülekanne ERR-i serverist.";
+
     return new PlatformVideoDetails({
       id: new PlatformID("Jupiter", "live_" + liveInfo.id, PLUGIN_ID),
-      name: liveInfo.name,
+      name: videoTitle,
       thumbnails: new Thumbnails([new Thumbnail(liveInfo.thumb, 720)]),
       author: new PlatformAuthorLink(
         new PlatformID("Jupiter", "err_live", PLUGIN_ID),
@@ -272,7 +336,7 @@ source.getContentDetails = function (url) {
       viewCount: 0,
       url: url,
       isLive: true,
-      description: liveInfo.name + " otseülekanne ERR-i serverist.",
+      description: videoDesc,
       video: new VideoSourceDescriptor([
         new HLSSource({
           name: "OTSE HLS",
@@ -344,3 +408,4 @@ source.getContentDetails = function (url) {
     ])
   });
 };
+
