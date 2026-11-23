@@ -123,8 +123,9 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
 }
 
 source.isContentDetailsUrl = function (url) {
-  return JUPITER_URL_REGEX.test(url);
+  return url.indexOf("/live/") !== -1 || JUPITER_URL_REGEX.test(url);
 };
+
 
 source.getContentDetails = function (url) {
   var match = url.match(JUPITER_URL_REGEX);
