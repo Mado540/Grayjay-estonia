@@ -9,7 +9,7 @@ var API_HEADERS = {
   "Accept": "application/json, text/plain, */*"
 };
 
-var JUPITER_URL_REGEX = /^https?:\/\/(www\.)?jupiter\.err\.ee\/(\d+)(\/[^/?#]+)?/i;
+var JUPITER_URL_REGEX = /^https?:\/\/([a-z0-9-]+\.)?err\.ee\/(\d+)(\/[^/?#]+)?/i;
 
 source.enable = function (conf, settings, savedState) {};
 
