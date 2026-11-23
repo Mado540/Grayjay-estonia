@@ -1,9 +1,9 @@
 source.getHome = function () {
-  return createJupiterSearchPager("", 1);
+  return createJupiterSearchPager("e", 1);
 };
 
 source.search = function (query, type, order, filters) {
-  return createJupiterSearchPager(query, 1);
+  return createJupiterSearchPager(query || "e", 1);
 };
 
 function createJupiterSearchPager(query, page) {
