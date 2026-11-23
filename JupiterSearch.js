@@ -1,3 +1,51 @@
+var ERR_LIVE_CHANNELS = [
+  {
+    id: "etv",
+    name: "OTSE: ETV",
+    url: "https://err.ee",
+    streamUrl: "https://err.ee",
+    thumb: "https://err.ee"
+  },
+  {
+    id: "etv2",
+    name: "OTSE: ETV2",
+    url: "https://err.ee2",
+    streamUrl: "https://err.ee",
+    thumb: "https://err.ee"
+  },
+  {
+    id: "etvpluss",
+    name: "OTSE: ETV+",
+    url: "https://err.eepluss",
+    streamUrl: "https://err.ee",
+    thumb: "https://err.ee"
+  }
+];
+
+function getLiveChannelVideos() {
+  var list = [];
+  for (var i = 0; i < ERR_LIVE_CHANNELS.length; i++) {
+    var ch = ERR_LIVE_CHANNELS[i];
+    list.push(new PlatformVideo({
+      id: new PlatformID("Jupiter", "live_" + ch.id, PLUGIN_ID),
+      name: ch.name,
+      thumbnails: new Thumbnails([new Thumbnail(ch.thumb, 225)]),
+      author: new PlatformAuthorLink(
+        new PlatformID("Jupiter", "err_live", PLUGIN_ID),
+        "ERR Otse",
+        "https://otse.err.ee",
+        "https://err.ee"
+      ),
+      uploadDate: Math.floor(Date.now() / 1000),
+      duration: 0,
+      viewCount: 0,
+      url: ch.url,
+      isLive: true
+    }));
+  }
+  return list;
+}
+
 source.getHome = function () {
   return createJupiterSearchPager("", 1);
 };
@@ -25,14 +73,14 @@ function createJupiterSearchPager(query, page) {
   var url = SERVICES_URL + "/api/search/getVodContents2/?type=&options=" + encodeURIComponent(JSON.stringify(opts));
   var resp = http.GET(url, API_HEADERS, false);
   if (!resp.isOk) {
-    return new VideoPager([], false, {});
+    return new VideoPager((!hasQuery && page === 1) ? getLiveChannelVideos() : [], false, {});
   }
 
   var json = JSON.parse(resp.body);
   var videoBlock = json.video || {};
   var items = videoBlock.contents || [];
   var totalFound = videoBlock.totalFound || 0;
-  var results = [];
+  var results = (!hasQuery && page === 1) ? getLiveChannelVideos() : [];
 
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
@@ -41,7 +89,7 @@ function createJupiterSearchPager(query, page) {
     var itemUrl = item.url || (BASE_URL + "/" + item.id + "/" + (item.fancyUrl || "saade"));
     var thumbUrl = extractErrPhoto(item);
     var seriesId = String(item.rootContentId || item.id);
-    var seriesTitle = item.heading.split("|")[0].trim();
+    var seriesTitle = item.heading.split("|").trim();
 
     results.push(new PlatformVideo({
       id: new PlatformID("Jupiter", String(item.id), PLUGIN_ID),
@@ -71,4 +119,3 @@ function createJupiterSearchPager(query, page) {
     }
   );
 }
-
