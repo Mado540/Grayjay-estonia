@@ -3,8 +3,8 @@
   "description": "ERR Jupiteri saated, sarjad ja filmid",
   "author": "Custom",
   "authorUrl": "https://jupiter.err.ee",
-  "sourceUrl": "https://jupiter.err.ee",
-  "repositoryUrl": "https://jupiter.err.ee",
+  "sourceUrl": "https://github.com/Mado540/Grayjay-estonia/blob/main/JupiterConfig.json",
+  "repositoryUrl": "https://github.com/Mado540/Grayjay-estonia/blob/main/",
   "scriptUrls": [
     "./JupiterMain.js",
     "./JupiterSearch.js",
