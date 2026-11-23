@@ -18,10 +18,7 @@
   "packages": ["Http", "Utilities"],
   "allowEval": false,
   "allowUrls": [
-    "jupiter.err.ee",
-    "services.err.ee",
-    "vod.err.ee",
-    "s.err.ee"
+    "everywhere"
   ]
 }
 
