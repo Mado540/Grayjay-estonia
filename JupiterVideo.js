@@ -146,10 +146,35 @@ source.getContentDetails = function (url) {
   var hlsUrl = src.hls || src.hls2 || src.hlsNew || "";
   var dashUrl = src.dash || src.mpd || "";
 
-  // Kontrolli DRM-kaitset enne mängija käivitamist
+  var root = data.rootContent || main;
+  var seriesId = String(root.id || main.id);
+  var seriesTitle = root.heading || main.heading || "ERR Jupiter";
+  var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
+  var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
+  var videoTitle = data.statsHeading || main.heading || "ERR Jupiter video";
+  var descText = stripHtmlTags(main.lead || "");
+
+  // Kontrolli DRM-kaitset
   var hasDrm = Boolean(media.drm) || (src.drm && Object.keys(src.drm).length > 0) || (!hlsUrl && dashUrl.indexOf("drm") !== -1);
   if (hasDrm || (!hlsUrl && dashUrl)) {
-    throw new ScriptException("See film/sari on DRM-kaitsega (Widevine) ega ole Grayjays mängitav.");
+    return new PlatformVideoDetails({
+      id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
+      name: "[DRM KAITSEGA] " + videoTitle,
+      thumbnails: new Thumbnails(thumbUrl ? [new Thumbnail(thumbUrl, 720)] : []),
+      author: new PlatformAuthorLink(
+        new PlatformID("Jupiter", seriesId, PLUGIN_ID),
+        seriesTitle,
+        BASE_URL + "/" + seriesId + "/" + (root.url || "saade"),
+        thumbUrl || "https://err.ee"
+      ),
+      uploadDate: main.publicStart || Math.floor(Date.now() / 1000),
+      duration: duration,
+      viewCount: 0,
+      url: url,
+      isLive: false,
+      description: "⚠️ See film/sari on DRM-kaitsega (Widevine) ega ole Grayjays mängitav.\n\n" + descText,
+      video: new VideoSourceDescriptor([])
+    });
   }
 
   if (!hlsUrl) {
@@ -158,15 +183,9 @@ source.getContentDetails = function (url) {
 
   if (hlsUrl.indexOf("//") === 0) hlsUrl = "https:" + hlsUrl;
 
-  var root = data.rootContent || main;
-  var seriesId = String(root.id || main.id);
-  var seriesTitle = root.heading || main.heading || "ERR Jupiter";
-  var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
-  var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
-
   return new PlatformVideoDetails({
     id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
-    name: data.statsHeading || main.heading || "ERR Jupiter video",
+    name: videoTitle,
     thumbnails: new Thumbnails(thumbUrl ? [new Thumbnail(thumbUrl, 720)] : []),
     author: new PlatformAuthorLink(
       new PlatformID("Jupiter", seriesId, PLUGIN_ID),
@@ -179,7 +198,7 @@ source.getContentDetails = function (url) {
     viewCount: 0,
     url: url,
     isLive: false,
-    description: stripHtmlTags(main.lead || ""),
+    description: descText,
     video: new VideoSourceDescriptor([
       new HLSSource({
         name: "HLS Auto",
