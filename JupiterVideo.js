@@ -268,13 +268,19 @@ function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
 }
 
 function getLiveScheduleInfo(liveId) {
+  var dNow = new Date();
+  var yyyy = dNow.getFullYear();
+  var mm = ("0" + (dNow.getMonth() + 1)).slice(-2);
+  var dd = ("0" + dNow.getDate()).slice(-2);
+  var todayStr = yyyy + "-" + mm + "-" + dd;
+
+  var slug = String(liveId).toLowerCase();
   var candidates = [
-    SERVICES_URL + "/api/v2/schedule/getSchedule",
-    SERVICES_URL + "/api/v2/tvSchedule/getSchedule",
-    "https://otse." + "err.ee/api/schedule/" + liveId,
-    "https://jupiter." + "err.ee/api/v2/schedule/getSchedule"
+    SERVICES_URL + "/api/v2/schedule/getSchedule?date=" + todayStr,
+    SERVICES_URL + "/api/v2/schedule/getSchedule?channel=" + slug + "&date=" + todayStr,
+    SERVICES_URL + "/api/v2/schedule/getSchedule?channels=" + slug + "&date=" + todayStr
   ];
-  
+
   var debugLog = [];
 
   for (var c = 0; c < candidates.length; c++) {
@@ -287,11 +293,14 @@ function getLiveScheduleInfo(liveId) {
 
       var json = JSON.parse(resp.body);
       var rawData = json.data || json;
-      var channelKey = String(liveId).toLowerCase();
-      var items = rawData[channelKey] || rawData.schedule || rawData.items || (Array.isArray(rawData) ? rawData : null);
+      var items = rawData[slug] || rawData.schedule || rawData.items || rawData.shows || (Array.isArray(rawData) ? rawData : null);
+
+      if (!items && rawData.channels && rawData.channels[slug]) {
+        items = rawData.channels[slug];
+      }
 
       if (!items || !Array.isArray(items) || items.length === 0) {
-        debugLog.push(candidates[c] + " -> OK, võtmed: " + Object.keys(rawData).join(", "));
+        debugLog.push(candidates[c] + " -> OK, sisu: " + resp.body.substring(0, 180));
         continue;
       }
 
@@ -311,9 +320,9 @@ function getLiveScheduleInfo(liveId) {
         if (end > now && upcomingList.length < 12) {
           var d = new Date(start * 1000);
           var hh = ("0" + d.getHours()).slice(-2);
-          var mm = ("0" + d.getMinutes()).slice(-2);
+          var min = ("0" + d.getMinutes()).slice(-2);
           var prefix = (start <= now && end > now) ? "▶ " : "";
-          upcomingList.push(prefix + hh + ":" + mm + " - " + title);
+          upcomingList.push(prefix + hh + ":" + min + " - " + title);
         }
       }
 
