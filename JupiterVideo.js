@@ -243,7 +243,7 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
 
 function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
   try {
-    var otseBase = "https://otse." + "err.ee/k/";
+    var otseBase = "https://otse.err.ee/k/";
     var pageMap = {
       "etv": otseBase + "etv",
       "etv2": otseBase + "etv2",
