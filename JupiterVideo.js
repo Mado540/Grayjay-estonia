@@ -278,7 +278,10 @@ source.getContentDetails = function (url) {
           name: "OTSE HLS",
           url: liveInfo.streamUrl,
           duration: 0,
-          headers: API_HEADERS
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Referer": "https://err.ee"
+          }
         })
       ])
     });
@@ -333,8 +336,11 @@ source.getContentDetails = function (url) {
         name: "HLS Auto",
         url: hlsUrl,
         duration: duration,
-        headers: API_HEADERS
-      })
-    ])
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Referer": "https://err.ee"
+          }
+        })
+      ])
   });
 };
