@@ -160,10 +160,11 @@ source.getContentDetails = function (url) {
       isLive: true,
       description: liveInfo.name + " otseülekanne ERR-i serverist.",
       video: new VideoSourceDescriptor([
-        new HLSSource({
-          name: "OTSE HLS",
-          url: liveInfo.streamUrl,
-          duration: 0
+      new HLSSource({
+        name: "HLS Auto",
+        url: hlsUrl,
+        duration: duration,
+        headers: API_HEADERS
         })
       ])
     });
@@ -218,7 +219,8 @@ source.getContentDetails = function (url) {
       new HLSSource({
         name: "HLS Auto",
         url: hlsUrl,
-        duration: duration
+        duration: duration,
+        headers: API_HEADERS
       })
     ])
   });
