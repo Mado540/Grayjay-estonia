@@ -127,11 +127,52 @@ source.isContentDetailsUrl = function (url) {
 };
 
 
+source.isContentDetailsUrl = function (url) {
+  return url.indexOf("/live/") !== -1 || JUPITER_URL_REGEX.test(url);
+};
+
 source.getContentDetails = function (url) {
+  if (url.indexOf("jupiter.err.ee/live/") !== -1) {
+    var liveId = url.split("/live/").split("?");
+    var liveInfo = null;
+    for (var i = 0; i < ERR_LIVE_CHANNELS.length; i++) {
+      if (ERR_LIVE_CHANNELS[i].id === liveId) {
+        liveInfo = ERR_LIVE_CHANNELS[i];
+        break;
+      }
+    }
+    if (!liveInfo) throw new ScriptException("Tundmatu otsekanal");
+
+    return new PlatformVideoDetails({
+      id: new PlatformID("Jupiter", "live_" + liveInfo.id, PLUGIN_ID),
+      name: liveInfo.name,
+      thumbnails: new Thumbnails([new Thumbnail(liveInfo.thumb, 720)]),
+      author: new PlatformAuthorLink(
+        new PlatformID("Jupiter", "err_live", PLUGIN_ID),
+        "ERR Otse",
+        "https://err.ee",
+        "https://err.ee"
+      ),
+      uploadDate: Math.floor(Date.now() / 1000),
+      duration: 0,
+      viewCount: 0,
+      url: url,
+      isLive: true,
+      description: liveInfo.name + " otseülekanne ERR-i serverist.",
+      video: new VideoSourceDescriptor([
+        new HLSSource({
+          name: "OTSE HLS",
+          url: liveInfo.streamUrl,
+          duration: 0
+        })
+      ])
+    });
+  }
+
   var match = url.match(JUPITER_URL_REGEX);
   if (!match) throw new ScriptException("Vigane Jupiteri video URL");
 
-  var contentId = match[2];
+  var contentId = match;
   var apiUrl = SERVICES_URL + "/api/v2/vodContent/getContentPageData?contentId=" + contentId + "&rootId=3905&page=web";
   var resp = http.GET(apiUrl, API_HEADERS, false);
   if (!resp.isOk) throw new ScriptException("Video laadimine ebaõnnestus: " + resp.code);
@@ -142,42 +183,9 @@ source.getContentDetails = function (url) {
     throw new ScriptException("Sellel sisul puudub mängitav videovoog (võib olla aegunud).");
   }
 
-  var media = main.medias[0];
+  var media = main.medias;
   var src = media.src || {};
   var hlsUrl = src.hls || src.hls2 || src.hlsNew || "";
-  var dashUrl = src.dash || src.mpd || "";
-
-  var root = data.rootContent || main;
-  var seriesId = String(root.id || main.id);
-  var seriesTitle = root.heading || main.heading || "ERR Jupiter";
-  var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
-  var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
-  var videoTitle = data.statsHeading || main.heading || "ERR Jupiter video";
-  var descText = stripHtmlTags(main.lead || "");
-
-  // Kontrolli DRM-kaitset
-  var hasDrm = Boolean(media.drm) || (src.drm && Object.keys(src.drm).length > 0) || (!hlsUrl && dashUrl.indexOf("drm") !== -1);
-  if (hasDrm || (!hlsUrl && dashUrl)) {
-    return new PlatformVideoDetails({
-      id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
-      name: "[DRM KAITSEGA] " + videoTitle,
-      thumbnails: new Thumbnails(thumbUrl ? [new Thumbnail(thumbUrl, 720)] : []),
-      author: new PlatformAuthorLink(
-        new PlatformID("Jupiter", seriesId, PLUGIN_ID),
-        seriesTitle,
-        BASE_URL + "/" + seriesId + "/" + (root.url || "saade"),
-        thumbUrl || "https://err.ee"
-      ),
-      uploadDate: main.publicStart || Math.floor(Date.now() / 1000),
-      duration: duration,
-      viewCount: 0,
-      url: url,
-      isLive: false,
-      description: "⚠️ See film/sari on DRM-kaitsega (Widevine) ega ole Grayjays mängitav.\n\n" + descText,
-      video: new VideoSourceDescriptor([])
-    });
-  }
-
   if (!hlsUrl) {
     throw new ScriptException("Mängitavat videovoogu ei leitud.");
   }
@@ -189,35 +197,10 @@ source.getContentDetails = function (url) {
   var seriesTitle = root.heading || main.heading || "ERR Jupiter";
   var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
   var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
-  var videoTitle = data.statsHeading || main.heading || "ERR Jupiter video";
-  var descText = stripHtmlTags(main.lead || "");
-
-  // Kontrolli, kas .m3u8 fail on ERR-i serveris päriselt kättesaadav
-  var hlsCheck = http.GET(hlsUrl, API_HEADERS, false);
-  if (!hlsCheck.isOk) {
-    return new PlatformVideoDetails({
-      id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
-      name: "[AEGUNUD / EI MÄNGI] " + videoTitle,
-      thumbnails: new Thumbnails(thumbUrl ? [new Thumbnail(thumbUrl, 720)] : []),
-      author: new PlatformAuthorLink(
-        new PlatformID("Jupiter", seriesId, PLUGIN_ID),
-        seriesTitle,
-        BASE_URL + "/" + seriesId + "/" + (root.url || "saade"),
-        thumbUrl || "https://err.ee"
-      ),
-      uploadDate: main.publicStart || Math.floor(Date.now() / 1000),
-      duration: duration,
-      viewCount: 0,
-      url: url,
-      isLive: false,
-      description: "⚠️ Videofail pole ERR-i serveris enam saadaval (litsents on aegunud või geoblokeeritud). HTTP staatus: " + hlsCheck.code + "\n\n" + descText,
-      video: new VideoSourceDescriptor([])
-    });
-  }
 
   return new PlatformVideoDetails({
     id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
-    name: videoTitle,
+    name: data.statsHeading || main.heading || "ERR Jupiter video",
     thumbnails: new Thumbnails(thumbUrl ? [new Thumbnail(thumbUrl, 720)] : []),
     author: new PlatformAuthorLink(
       new PlatformID("Jupiter", seriesId, PLUGIN_ID),
@@ -230,7 +213,7 @@ source.getContentDetails = function (url) {
     viewCount: 0,
     url: url,
     isLive: false,
-    description: descText,
+    description: stripHtmlTags(main.lead || ""),
     video: new VideoSourceDescriptor([
       new HLSSource({
         name: "HLS Auto",
