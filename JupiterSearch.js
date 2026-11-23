@@ -89,7 +89,7 @@ function createJupiterSearchPager(query, page) {
     var itemUrl = item.url || (BASE_URL + "/" + item.id + "/" + (item.fancyUrl || "saade"));
     var thumbUrl = extractErrPhoto(item);
     var seriesId = String(item.rootContentId || item.id);
-    var seriesTitle = item.heading.split("|").trim();
+    var seriesTitle = item.heading.split("|").shift().trim();
 
     results.push(new PlatformVideo({
       id: new PlatformID("Jupiter", String(item.id), PLUGIN_ID),
