@@ -4,9 +4,12 @@ var files = [
   "https://raw.githubusercontent.com/Mado540/Grayjay-estonia/refs/heads/main/JupiterVideo.js"
 ];
 
+var fullScript = "";
 for (var i = 0; i < files.length; i++) {
   var res = http.GET(files[i], {}, false);
   if (res.isOk) {
-    eval(res.body);
+    fullScript += res.body + "\n";
   }
 }
+
+eval(fullScript);
