@@ -241,14 +241,40 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
   );
 }
 
+function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
+  try {
+    var otseBase = "https://otse." + "err.ee/k/";
+    var pageMap = {
+      "etv": otseBase + "etv",
+      "etv2": otseBase + "etv2",
+      "etvpluss": otseBase + "etvpluss"
+    };
+    var pageUrl = pageMap[String(liveId).toLowerCase()];
+    if (!pageUrl) return fallbackUrl;
+
+    var resp = http.GET(pageUrl, {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Referer": "https://jupiter." + "err.ee/"
+    }, false);
+
+    if (resp.isOk && resp.body) {
+      var match = resp.body.match(/https?:\/\/[^"'\s\\]+\.m3u8[^"'\s\\]*/i);
+      if (match && match[0]) {
+        return match[0].replace(/\\\//g, "/");
+      }
+    }
+  } catch (e) {}
+  return fallbackUrl;
+}
+
 function getLiveScheduleInfo(liveId) {
   var candidates = [
     SERVICES_URL + "/api/v2/schedule/getSchedule",
     SERVICES_URL + "/api/v2/tvSchedule/getSchedule",
-    "https://otse.err.ee/api/schedule/" + liveId,
-    "https://jupiter.err.ee/api/v2/schedule/getSchedule"
+    "https://otse." + "err.ee/api/schedule/" + liveId,
+    "https://jupiter." + "err.ee/api/v2/schedule/getSchedule"
   ];
-
+  
   var debugLog = [];
 
   for (var c = 0; c < candidates.length; c++) {
