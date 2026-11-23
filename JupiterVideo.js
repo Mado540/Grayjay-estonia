@@ -241,6 +241,32 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
   );
 }
 
+function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
+  try {
+    var otseBase = "https://otse." + "err.ee/k/";
+    var pageMap = {
+      "etv": otseBase + "etv",
+      "etv2": otseBase + "etv2",
+      "etvpluss": otseBase + "etvpluss"
+    };
+    var pageUrl = pageMap[String(liveId).toLowerCase()];
+    if (!pageUrl) return fallbackUrl;
+
+    var resp = http.GET(pageUrl, {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Referer": "https://jupiter." + "err.ee/"
+    }, false);
+
+    if (resp.isOk && resp.body) {
+      var match = resp.body.match(/https?:\/\/[^"'\s\\]+\.m3u8[^"'\s\\]*/i);
+      if (match && match[0]) {
+        return match[0].replace(/\\\//g, "/");
+      }
+    }
+  } catch (e) {}
+  return fallbackUrl;
+}
+
 function getLiveScheduleInfo(liveId) {
   try {
     var sectionMap = {
@@ -249,7 +275,8 @@ function getLiveScheduleInfo(liveId) {
       "etvpluss": "ETV+"
     };
     var targetHeader = sectionMap[String(liveId).toLowerCase()] || "ETV";
-    var resp = http.GET("https://err.ee", {
+    var scheduleUrl = "https://otse." + "err.ee/k/saatekava/tele";
+    var resp = http.GET(scheduleUrl, {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     }, false);
     if (!resp.isOk) {
@@ -355,6 +382,7 @@ source.getContentDetails = function (url) {
     }
     if (!liveInfo) throw new ScriptException("Tundmatu otsekanal: " + liveId);
 
+    var realStreamUrl = resolveErrLiveStreamUrl(liveInfo.id, liveInfo.streamUrl);
     var sched = getLiveScheduleInfo(liveInfo.id);
     var videoTitle = (sched && sched.currentShow)
       ? liveInfo.name + " | Hetkel eetris: " + sched.currentShow
@@ -363,9 +391,6 @@ source.getContentDetails = function (url) {
     var descParts = [];
     if (sched && sched.currentShow) {
       descParts.push("HETKEL EETRIS: " + sched.currentShow);
-      if (sched.currentLead) {
-        descParts.push(sched.currentLead);
-      }
     }
     if (sched && sched.scheduleText) {
       descParts.push("TÄNANE SAATEKAVA:\n" + sched.scheduleText);
@@ -381,8 +406,8 @@ source.getContentDetails = function (url) {
       author: new PlatformAuthorLink(
         new PlatformID("Jupiter", "err_live", PLUGIN_ID),
         "ERR Otse",
-        "https://jupiter.err.ee",
-        "https://jupiter.err.ee"
+        "https://jupiter." + "err.ee",
+        "https://jupiter." + "err.ee"
       ),
       uploadDate: Math.floor(Date.now() / 1000),
       duration: 0,
@@ -393,12 +418,12 @@ source.getContentDetails = function (url) {
       video: new VideoSourceDescriptor([
         new HLSSource({
           name: "OTSE HLS",
-          url: liveInfo.streamUrl,
+          url: realStreamUrl,
           duration: 0,
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Referer": "https://jupiter.err.ee/",
-            "Origin": "https://jupiter.err.ee"
+            "Referer": "https://jupiter." + "err.ee/",
+            "Origin": "https://jupiter." + "err.ee"
           }
         })
       ])
