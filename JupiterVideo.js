@@ -243,7 +243,7 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
 
 function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
   try {
-    var otseBase = "https://otse." + "err.ee/k/";
+    var otseBase = "https://otse.err.ee/k/";
     var pageMap = {
       "etv": otseBase + "etv",
       "etv2": otseBase + "etv2",
@@ -254,7 +254,7 @@ function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
 
     var resp = http.GET(pageUrl, {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Referer": "https://jupiter." + "err.ee/"
+      "Referer": "https://jupiter.err.ee/"
     }, false);
 
     if (resp.isOk && resp.body) {
@@ -275,7 +275,7 @@ function getLiveScheduleInfo(liveId) {
       "etvpluss": "ETV+"
     };
     var targetHeader = sectionMap[String(liveId).toLowerCase()] || "ETV";
-    var scheduleUrl = "https://otse." + "err.ee/k/saatekava/tele";
+    var scheduleUrl = "https://otse.err.ee/k/saatekava/tele";
     var resp = http.GET(scheduleUrl, {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     }, false);
@@ -406,8 +406,8 @@ source.getContentDetails = function (url) {
       author: new PlatformAuthorLink(
         new PlatformID("Jupiter", "err_live", PLUGIN_ID),
         "ERR Otse",
-        "https://jupiter." + "err.ee",
-        "https://jupiter." + "err.ee"
+        "https://jupiter.err.ee",
+        "https://jupiter.err.ee"
       ),
       uploadDate: Math.floor(Date.now() / 1000),
       duration: 0,
@@ -422,8 +422,8 @@ source.getContentDetails = function (url) {
           duration: 0,
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Referer": "https://jupiter." + "err.ee/",
-            "Origin": "https://jupiter." + "err.ee"
+            "Referer": "https://jupiter.err.ee/",
+            "Origin": "https://jupiter.err.ee"
           }
         })
       ])
