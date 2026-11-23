@@ -243,55 +243,91 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
 
 function getLiveScheduleInfo(liveId) {
   try {
-    var channelMap = {
-      "etv": "etv",
-      "etv2": "etv2",
-      "etvpluss": "etvpluss"
+    var sectionMap = {
+      "etv": "ETV",
+      "etv2": "ETV2",
+      "etvpluss": "ETV+"
     };
-    var slug = channelMap[liveId] || liveId;
-    var scheduleUrl = SERVICES_URL + "/api/v2/tvSchedule/getTvSchedule?channel=" + slug;
-    var resp = http.GET(scheduleUrl, API_HEADERS, false);
+    var targetHeader = sectionMap[String(liveId).toLowerCase()] || "ETV";
+    var resp = http.GET("https://err.ee", {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }, false);
     if (!resp.isOk) {
       return {
         currentShow: "",
         currentLead: "",
-        scheduleText: "Saatekava API viga: HTTP " + resp.code
+        scheduleText: "Saatekava laadimine ebaõnnestus: HTTP " + resp.code
       };
     }
 
-    var json = JSON.parse(resp.body);
-    var items = (json.data && (json.data.schedule || json.data.items)) ? (json.data.schedule || json.data.items) : [];
-    var now = Math.floor(Date.now() / 1000);
-    var currentShow = "";
-    var currentLead = "";
-    var upcomingList = [];
+    var cleanText = resp.body
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, "\n");
 
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      if (item.start <= now && item.end > now) {
-        currentShow = item.heading || "";
-        currentLead = stripHtmlTags(item.lead || "");
+    var lines = cleanText.split("\n");
+    var inSection = false;
+    var entries = [];
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].replace(/\s+/g, " ").trim();
+      if (!line) continue;
+
+      if (line === "ETV" || line === "ETV2" || line === "ETV+") {
+        if (inSection && line !== targetHeader) break;
+        if (line === targetHeader) {
+          inSection = true;
+          continue;
+        }
       }
-      if (item.end > now && upcomingList.length < 10) {
-        var d = new Date(item.start * 1000);
-        var hh = ("0" + d.getHours()).slice(-2);
-        var mm = ("0" + d.getMinutes()).slice(-2);
-        var prefix = (item.start <= now && item.end > now) ? "▶ " : "";
-        upcomingList.push(prefix + hh + ":" + mm + " - " + (item.heading || ""));
+
+      if (inSection) {
+        if (line === "Arhiiv" || line === "ERR") break;
+        var m = line.match(/^(\d{2}):(\d{2})\s*(.+)$/);
+        if (m) {
+          var mins = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+          entries.push({
+            time: m[1] + ":" + m[2],
+            mins: mins,
+            title: m[3].trim()
+          });
+        }
       }
     }
 
-    if (upcomingList.length === 0) {
+    if (entries.length === 0) {
       return {
         currentShow: "",
         currentLead: "",
-        scheduleText: "Saatekava tühi. Võtmed: " + Object.keys(json.data || json).join(", ")
+        scheduleText: "Saatekava kirjeid ei leitud."
       };
+    }
+
+    var now = new Date();
+    var nowMins = now.getHours() * 60 + now.getMinutes();
+    var currentIndex = 0;
+
+    for (var j = 0; j < entries.length; j++) {
+      var eMins = entries[j].mins;
+      if (j > 0 && eMins < 300) eMins += 1440;
+      var cmpNow = (nowMins < 300 && entries[0].mins >= 300) ? nowMins + 1440 : nowMins;
+      if (eMins <= cmpNow) {
+        currentIndex = j;
+      } else {
+        break;
+      }
+    }
+
+    var currentShow = entries[currentIndex] ? entries[currentIndex].title : "";
+    var upcomingList = [];
+    for (var k = currentIndex; k < entries.length && upcomingList.length < 12; k++) {
+      var prefix = (k === currentIndex) ? "▶ " : "";
+      upcomingList.push(prefix + entries[k].time + " - " + entries[k].title);
     }
 
     return {
       currentShow: currentShow,
-      currentLead: currentLead,
+      currentLead: "",
       scheduleText: upcomingList.join("\n")
     };
   } catch (e) {
