@@ -133,7 +133,7 @@ source.isContentDetailsUrl = function (url) {
 
 source.getContentDetails = function (url) {
   if (url.indexOf("jupiter.err.ee/live/") !== -1) {
-    var liveId = url.split("/live/").split("?");
+    var liveId = url.split("/live/").pop().split("?").shift();
     var liveInfo = null;
     for (var i = 0; i < ERR_LIVE_CHANNELS.length; i++) {
       if (ERR_LIVE_CHANNELS[i].id === liveId) {
