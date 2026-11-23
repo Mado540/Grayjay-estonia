@@ -183,6 +183,37 @@ source.getContentDetails = function (url) {
 
   if (hlsUrl.indexOf("//") === 0) hlsUrl = "https:" + hlsUrl;
 
+  var root = data.rootContent || main;
+  var seriesId = String(root.id || main.id);
+  var seriesTitle = root.heading || main.heading || "ERR Jupiter";
+  var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
+  var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
+  var videoTitle = data.statsHeading || main.heading || "ERR Jupiter video";
+  var descText = stripHtmlTags(main.lead || "");
+
+  // Kontrolli, kas .m3u8 fail on ERR-i serveris päriselt kättesaadav
+  var hlsCheck = http.GET(hlsUrl, API_HEADERS, false);
+  if (!hlsCheck.isOk) {
+    return new PlatformVideoDetails({
+      id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
+      name: "[AEGUNUD / EI MÄNGI] " + videoTitle,
+      thumbnails: new Thumbnails(thumbUrl ? [new Thumbnail(thumbUrl, 720)] : []),
+      author: new PlatformAuthorLink(
+        new PlatformID("Jupiter", seriesId, PLUGIN_ID),
+        seriesTitle,
+        BASE_URL + "/" + seriesId + "/" + (root.url || "saade"),
+        thumbUrl || "https://err.ee"
+      ),
+      uploadDate: main.publicStart || Math.floor(Date.now() / 1000),
+      duration: duration,
+      viewCount: 0,
+      url: url,
+      isLive: false,
+      description: "⚠️ Videofail pole ERR-i serveris enam saadaval (litsents on aegunud või geoblokeeritud). HTTP staatus: " + hlsCheck.code + "\n\n" + descText,
+      video: new VideoSourceDescriptor([])
+    });
+  }
+
   return new PlatformVideoDetails({
     id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
     name: videoTitle,
