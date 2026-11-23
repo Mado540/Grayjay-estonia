@@ -26,14 +26,19 @@ function getLiveChannelVideos() {
   var list = [];
   for (var i = 0; i < ERR_LIVE_CHANNELS.length; i++) {
     var ch = ERR_LIVE_CHANNELS[i];
+    var sched = (typeof getLiveScheduleInfo === "function") ? getLiveScheduleInfo(ch.id) : null;
+    var displayTitle = (sched && sched.currentShow)
+      ? ch.name + " — " + sched.currentShow
+      : ch.name;
+
     list.push(new PlatformVideo({
       id: new PlatformID("Jupiter", "live_" + ch.id, PLUGIN_ID),
-      name: ch.name,
-      thumbnails: new Thumbnails([new Thumbnail(ch.thumb, 225)]),
+      name: displayTitle,
+      thumbnails: new Thumbnails([new Thumbnail(ch.thumb, 720)]),
       author: new PlatformAuthorLink(
         new PlatformID("Jupiter", "err_live", PLUGIN_ID),
-        "ERR Otse",
-        "https://otse.err.ee",
+        (sched && sched.currentShow) ? "Hetkel: " + sched.currentShow : "ERR Otse",
+        "https://err.ee",
         "https://err.ee"
       ),
       uploadDate: Math.floor(Date.now() / 1000),
