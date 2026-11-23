@@ -146,37 +146,23 @@ source.getContentDetails = function (url) {
   var hlsUrl = src.hls || src.hls2 || src.hlsNew || "";
   var dashUrl = src.dash || src.mpd || "";
 
-  if (!hlsUrl && !dashUrl) {
-    if (media.drm) {
-      throw new ScriptException("See film/sari on DRM-kaitsega ega ole Grayjays mängitav.");
-    }
+  // Kontrolli DRM-kaitset enne mängija käivitamist
+  var hasDrm = Boolean(media.drm) || (src.drm && Object.keys(src.drm).length > 0) || (!hlsUrl && dashUrl.indexOf("drm") !== -1);
+  if (hasDrm || (!hlsUrl && dashUrl)) {
+    throw new ScriptException("See film/sari on DRM-kaitsega (Widevine) ega ole Grayjays mängitav.");
+  }
+
+  if (!hlsUrl) {
     throw new ScriptException("Mängitavat videovoogu ei leitud.");
   }
 
-  if (hlsUrl && hlsUrl.indexOf("//") === 0) hlsUrl = "https:" + hlsUrl;
-  if (dashUrl && dashUrl.indexOf("//") === 0) dashUrl = "https:" + dashUrl;
+  if (hlsUrl.indexOf("//") === 0) hlsUrl = "https:" + hlsUrl;
 
   var root = data.rootContent || main;
   var seriesId = String(root.id || main.id);
   var seriesTitle = root.heading || main.heading || "ERR Jupiter";
   var thumbUrl = extractErrPhoto(main) || extractErrPhoto(root);
   var duration = (media.mediaInfo && media.mediaInfo.duration) ? parseInt(media.mediaInfo.duration, 10) : 0;
-
-  var sources = [];
-  if (hlsUrl) {
-    sources.push(new HLSSource({
-      name: "HLS Auto",
-      url: hlsUrl,
-      duration: duration
-    }));
-  }
-  if (dashUrl) {
-    sources.push(new DashSource({
-      name: "DASH Auto",
-      url: dashUrl,
-      duration: duration
-    }));
-  }
 
   return new PlatformVideoDetails({
     id: new PlatformID("Jupiter", String(main.id), PLUGIN_ID),
@@ -194,6 +180,12 @@ source.getContentDetails = function (url) {
     url: url,
     isLive: false,
     description: stripHtmlTags(main.lead || ""),
-    video: new VideoSourceDescriptor(sources)
+    video: new VideoSourceDescriptor([
+      new HLSSource({
+        name: "HLS Auto",
+        url: hlsUrl,
+        duration: duration
+      })
+    ])
   });
 };
