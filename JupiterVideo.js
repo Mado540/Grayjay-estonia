@@ -241,99 +241,74 @@ function buildSeasonPager(seasons, seasonIndex, preloadedData, seriesId, seriesT
   );
 }
 
-function resolveErrLiveStreamUrl(liveId, fallbackUrl) {
-  try {
-    var otseBase = "https://otse.err.ee/k/";
-    var pageMap = {
-      "etv": otseBase + "etv",
-      "etv2": otseBase + "etv2",
-      "etvpluss": otseBase + "etvpluss"
-    };
-    var pageUrl = pageMap[String(liveId).toLowerCase()];
-    if (!pageUrl) return fallbackUrl;
-
-    var resp = http.GET(pageUrl, {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Referer": "https://jupiter.err.ee/"
-    }, false);
-
-    if (resp.isOk && resp.body) {
-      var match = resp.body.match(/https?:\/\/[^"'\s\\]+\.m3u8[^"'\s\\]*/i);
-      if (match && match[0]) {
-        return match[0].replace(/\\\//g, "/");
-      }
-    }
-  } catch (e) {}
-  return fallbackUrl;
-}
-
 function getLiveScheduleInfo(liveId) {
-  try {
-    var channelMap = {
-      "etv": "etv",
-      "etv2": "etv2",
-      "etvpluss": "etvpluss"
-    };
-    var slug = channelMap[String(liveId).toLowerCase()] || "etv";
-    var scheduleUrl = SERVICES_URL + "/api/v2/schedule/getLiveSchedule?channel=" + slug;
-    var resp = http.GET(scheduleUrl, API_HEADERS, false);
-    if (!resp.isOk) {
-      return {
-        currentShow: "",
-        currentLead: "",
-        scheduleText: "Saatekava API viga: HTTP " + resp.code
-      };
-    }
+  var candidates = [
+    SERVICES_URL + "/api/v2/schedule/getSchedule",
+    SERVICES_URL + "/api/v2/tvSchedule/getSchedule",
+    "https://otse.err.ee/api/schedule/" + liveId,
+    "https://jupiter.err.ee/api/v2/schedule/getSchedule"
+  ];
 
-    var json = JSON.parse(resp.body);
-    var items = (json.data && (json.data.schedule || json.data.items || json.data.shows))
-      ? (json.data.schedule || json.data.items || json.data.shows)
-      : (Array.isArray(json.data) ? json.data : []);
+  var debugLog = [];
 
-    var now = Math.floor(Date.now() / 1000);
-    var currentShow = "";
-    var upcomingList = [];
-
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      var start = item.startTime || item.start || 0;
-      var end = item.endTime || item.end || 0;
-      var title = item.programName || item.heading || item.title || "";
-
-      if (start <= now && end > now) {
-        currentShow = title;
+  for (var c = 0; c < candidates.length; c++) {
+    try {
+      var resp = http.GET(candidates[c], API_HEADERS, false);
+      if (!resp.isOk) {
+        debugLog.push(candidates[c] + " -> HTTP " + resp.code);
+        continue;
       }
-      if (end > now && upcomingList.length < 12) {
-        var d = new Date(start * 1000);
-        var hh = ("0" + d.getHours()).slice(-2);
-        var mm = ("0" + d.getMinutes()).slice(-2);
-        var prefix = (start <= now && end > now) ? "▶ " : "";
-        upcomingList.push(prefix + hh + ":" + mm + " - " + title);
+
+      var json = JSON.parse(resp.body);
+      var rawData = json.data || json;
+      var channelKey = String(liveId).toLowerCase();
+      var items = rawData[channelKey] || rawData.schedule || rawData.items || (Array.isArray(rawData) ? rawData : null);
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        debugLog.push(candidates[c] + " -> OK, võtmed: " + Object.keys(rawData).join(", "));
+        continue;
       }
-    }
 
-    if (upcomingList.length === 0) {
-      return {
-        currentShow: "",
-        currentLead: "",
-        scheduleText: "Saatekava vastuse võtmed: " + Object.keys(json.data || json).join(", ")
-      };
-    }
+      var now = Math.floor(Date.now() / 1000);
+      var currentShow = "";
+      var upcomingList = [];
 
-    return {
-      currentShow: currentShow,
-      currentLead: "",
-      scheduleText: upcomingList.join("\n")
-    };
-  } catch (e) {
-    return {
-      currentShow: "",
-      currentLead: "",
-      scheduleText: "Saatekava viga: " + e.message
-    };
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var start = item.startTime || item.start || 0;
+        var end = item.endTime || item.end || 0;
+        var title = item.programName || item.heading || item.title || "";
+
+        if (start <= now && end > now) {
+          currentShow = title;
+        }
+        if (end > now && upcomingList.length < 12) {
+          var d = new Date(start * 1000);
+          var hh = ("0" + d.getHours()).slice(-2);
+          var mm = ("0" + d.getMinutes()).slice(-2);
+          var prefix = (start <= now && end > now) ? "▶ " : "";
+          upcomingList.push(prefix + hh + ":" + mm + " - " + title);
+        }
+      }
+
+      if (upcomingList.length > 0) {
+        return {
+          currentShow: currentShow,
+          currentLead: "",
+          scheduleText: upcomingList.join("\n")
+        };
+      }
+    } catch (e) {
+      debugLog.push(candidates[c] + " -> viga: " + e.message);
+    }
   }
-}
 
+  return {
+    currentShow: "",
+    currentLead: "",
+    scheduleText: "API kontroll:\n" + debugLog.join("\n")
+  };
+}
 
 source.isContentDetailsUrl = function (url) {
   return url.indexOf("/live/") !== -1 || JUPITER_URL_REGEX.test(url);
