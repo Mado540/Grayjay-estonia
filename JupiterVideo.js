@@ -274,7 +274,9 @@ function getLiveScheduleInfo(liveId) {
   var dd = ("0" + dNow.getDate()).slice(-2);
   var todayStr = yyyy + "-" + mm + "-" + dd;
 
-  var slug = String(liveId).toLowerCase();
+  var slugMap = { "etv": "etv", "etv2": "etv2", "etvpluss": "etvplus" };
+  var slug = slugMap[String(liveId).toLowerCase()] || String(liveId).toLowerCase();
+
   var candidates = [
     SERVICES_URL + "/api/v2/schedule/getSchedule?date=" + todayStr,
     SERVICES_URL + "/api/v2/schedule/getSchedule?channel=" + slug + "&date=" + todayStr,
